@@ -100,12 +100,12 @@ public class ProducerPerformance {
                     props.put(pieces[0], pieces[1]);
                 }
 
-            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
+            props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer");
             props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.ByteArraySerializer");
             if (transactionsEnabled)
                 props.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, transactionalId);
 
-            KafkaProducer<byte[], byte[]> producer = new KafkaProducer<>(props);
+            KafkaProducer<String, byte[]> producer = new KafkaProducer<>(props);
 
             if (transactionsEnabled)
                 producer.initTransactions();
@@ -118,7 +118,7 @@ public class ProducerPerformance {
                 for (int i = 0; i < payload.length; ++i)
                     payload[i] = (byte) (random.nextInt(26) + 65);
             }
-            ProducerRecord<byte[], byte[]> record;
+            ProducerRecord<String, byte[]> record;
             Stats stats = new Stats(numRecords, 5000);
             long startMs = System.currentTimeMillis();
 
@@ -136,7 +136,7 @@ public class ProducerPerformance {
                 if (payloadFilePath != null) {
                     payload = payloadByteList.get(random.nextInt(payloadByteList.size()));
                 }
-                record = new ProducerRecord<>(topicName, payload);
+                record = new ProducerRecord<>(topicName, getRandomKeyString(), payload);
 
                 long sendStartMs = System.currentTimeMillis();
                 Callback cb = stats.nextCompletion(sendStartMs, payload.length, stats);
@@ -184,6 +184,18 @@ public class ProducerPerformance {
             }
         }
 
+    }
+
+    private static String getRandomKeyString() {
+        int leftLimit = 97;
+        int rightLimit = 122;
+        int targetStringLength = 10;
+        Random random = new Random();
+
+        return random.ints(leftLimit, rightLimit + 1)
+                .limit(targetStringLength)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
     }
 
     /** Get the command-line argument parser. */
